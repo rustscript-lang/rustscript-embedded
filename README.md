@@ -7,7 +7,7 @@ A small RustScript runner for embedded and constrained targets. The published Ca
 
 ## Host examples
 
-The default branch keeps host-side runner examples with JIT disabled:
+The default `host` feature uses the complete `pd-vm` compiler and interpreter with JIT disabled:
 
 ```bash
 cargo run --example run_file -- programs/blinky.rss
@@ -16,31 +16,50 @@ printf 'print(1 + 2);\n.quit\n' | cargo run --example repl
 
 ## RP2040 / Raspberry Pi Pico
 
-The first real MCU integration is developed on
-[`feat/rp2040-platformio`](https://github.com/rustscript-lang/rustscript-embedded/tree/feat/rp2040-platformio).
-It links the `pd-vm` `no_std + alloc` VMBC interpreter into an Arduino-Pico firmware through a narrow
-C ABI. RustScript source is compiled to VMBC on the host; GPIO, delay, serial output, and allocation
-remain owned by the PlatformIO application.
+The RP2040 integration links the sibling `pd-vm-nostd` crate. Only the VMBC decoder, compact
+interpreter, synchronous host callbacks, and instruction fuel compile for `thumbv6m-none-eabi`;
+the source compiler, CLI, debugger, and JIT remain in host-side `pd-vm`.
+
+RustScript source is compiled to VMBC during the PlatformIO build. The firmware links the real Rust
+`no_std + alloc` interpreter as a static library and runs it through Arduino-Pico callbacks for GPIO,
+delay, serial output, and allocation.
 
 ```bash
-git switch feat/rp2040-platformio
 rustup target add thumbv6m-none-eabi
 uv tool install platformio
 pio run -d platformio/rp2040
 ```
 
-That branch builds a real ELF and UF2 containing `rustscript_run_vmbc`, the compact interpreter, and
-the embedded VMBC program. CI publishes both firmware artifacts.
+The generated firmware files are under:
+
+```text
+platformio/rp2040/.pio/build/pico/firmware.elf
+platformio/rp2040/.pio/build/pico/firmware.uf2
+```
+
+The verified PlatformIO build reports 87,908 flash bytes and 12,668 RAM bytes. The UF2 container is
+200,192 bytes. These figures include Arduino-Pico, `pd-vm-nostd`, the allocator bridge, host
+callbacks, and the embedded 780-byte VMBC program.
+
+## Integration shape
+
+- `platformio/rp2040/programs/blinky.rss`: host-compiled RustScript source
+- `platformio/rp2040/scripts/build_rust.py`: Cargo + VMBC pre-build integration
+- `platformio/rp2040/src/main.cpp`: Arduino GPIO, delay, serial, allocator, and host callback bridge
+- `include/rustscript_embedded.h`: C ABI for the Rust static library
+
+Applications may replace `blinky.rss` and extend the C callback dispatcher without adding SoC or
+Arduino dependencies to `pd-vm-nostd`.
 
 ## Raspberry Pi Zero note
 
-The older `ports/raspi-zero` files on the default branch are a frozen-bytecode board smoke target.
-They do not contain `pd-vm` and must not be used as evidence of a full RustScript bare-metal runtime.
-Use the RP2040 branch for the maintained `no_std` integration.
+The older `ports/raspi-zero` files are a frozen-bytecode board smoke target. They do not contain
+`pd-vm` or `pd-vm-nostd` and must not be used as evidence of a complete RustScript bare-metal
+runtime. Use the RP2040 integration for the maintained `no_std` path.
 
-## Size controls
+## Size profile
 
-Release profiles use:
+Release and min-size builds use:
 
 - `opt-level = "z"`
 - `lto = "fat"`
