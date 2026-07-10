@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use core::ffi::c_void;
 use core::{ptr, slice, str};
 
-use vm::embedded::{HostError, Value, Vm, VmError, decode_program};
+use pd_vm_nostd::{HostError, Value, Vm, VmError, decode_program};
 
 pub const RUSTSCRIPT_STATUS_OK: i32 = 0;
 pub const RUSTSCRIPT_STATUS_INVALID_ARGUMENT: i32 = -1;

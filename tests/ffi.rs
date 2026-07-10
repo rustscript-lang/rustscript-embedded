@@ -3,6 +3,7 @@
 use std::ffi::c_void;
 use std::slice;
 
+use pd_vm_nostd::Value as NoStdValue;
 use rustscript_embedded::{
     RustScriptHostCallback, RustScriptValue, RustScriptValueTag, rustscript_run_vmbc,
 };
@@ -64,12 +65,12 @@ fn compile_vmbc(source: &str) -> Vec<u8> {
 #[test]
 fn scalar_ffi_values_round_trip() {
     let values = [
-        vm::embedded::Value::Null,
-        vm::embedded::Value::Int(42),
-        vm::embedded::Value::Float(2.5),
-        vm::embedded::Value::Bool(true),
-        vm::embedded::Value::string("pico"),
-        vm::embedded::Value::bytes([1, 2, 3]),
+        NoStdValue::Null,
+        NoStdValue::Int(42),
+        NoStdValue::Float(2.5),
+        NoStdValue::Bool(true),
+        NoStdValue::string("pico"),
+        NoStdValue::bytes([1, 2, 3]),
     ];
 
     for value in values {
